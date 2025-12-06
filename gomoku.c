@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // define board size
 // 定义棋盘大小
@@ -44,9 +45,8 @@ typedef struct {
 typedef struct {
     CellState board[BOARD_SIZE][BOARD_SIZE];
     Player currentPlayer; // whose turn it is
-    Position lastMove; // where the last move made
-} GameState;
-
+    Position lastMove; // where the last move made 
+}GameState;
 
 // Function to initialize the game state
 // 初始化游戏状态的函数
@@ -144,6 +144,8 @@ int main(int argc, char *argv[]) {
     GameState gameState;
     initializeGame(&gameState);
     GameMode gameMode = MODE_PVP;
+    Player personPlayer;//人类玩家，仅用于pve模式
+    Player aiPlayer; //设置ai对手
 
     // Handle input before starting the game loop
     // 在开始游戏循环前处理输入
@@ -156,6 +158,44 @@ int main(int argc, char *argv[]) {
     // TODO: Use argc and argv to set up game mode. Default to Player vs Player.
     // 可以选择使用 argc 和 argv 来设置游戏模式，默认玩家对玩家模式。也可以选择其他方式输入。
 
+    // 设置方式1：命令行输入
+    if(argc > 1){
+        if(strcmp(argv[1],"1") == 0){
+            gameMode = MODE_PVP;
+            mode = 1;
+        }
+        else if(strcmp(argv[1],"2") == 0){
+            gameMode = MODE_PVE;
+            mode = 2;
+        }
+    }
+    if(argc > 2 && mode == 2){  //有多个参数，并且pve模式
+        if(strcmp(argv[2],"1") == 0){
+            //人类先手，下黑棋
+            gameState.currentPlayer = PLAYER_BLACK;
+            personPlayer = PLAYER_BLACK;
+            aiPlayer = PLAYER_WHITE;
+        }
+        else if(strcmp(argv[2],"2") == 0){
+            //ai先手，下黑棋
+            gameState.currentPlayer = PLAYER_BLACK;
+            personPlayer = PLAYER_WHITE;
+            aiPlayer = PLAYER_BLACK;
+        }
+    }
+    //设置方式2：交互式输入
+    if(argc<=1){
+        int read;
+        printf("请选择对战模式:(1:PVP,2:PVE)");
+        fgets(input,sizeof(input),stdin);
+        sscanf(input,"%d",&read);
+        if(read == 2){
+            gameMode = MODE_PVE;
+            mode = 2;
+        }
+    }
+
+
     if (mode == 1) {
         printf("You selected Player vs Player mode.\n");
     } else {
@@ -163,13 +203,31 @@ int main(int argc, char *argv[]) {
         printf("Who goes first? (1: You, 2: AI): ");
         // TODO: Use stdin to ask who goes first
         // 可以选择使用标准输入来询问谁先手。
+        int first;
+        fgets(input,sizeof(input),stdin);
+        sscanf(input,"%d",&first);
+        if(first == 1){
+            gameState.currentPlayer = PLAYER_BLACK;
+            personPlayer = PLAYER_BLACK;
+            aiPlayer = PLAYER_WHITE;
+            printf("你先手,你使用黑棋\n");
+        }
+        else if(first == 2){
+            gameState.currentPlayer = PLAYER_BLACK;
+            personPlayer = PLAYER_WHITE;
+            aiPlayer = PLAYER_BLACK;
+            printf("ai先手,你使用白棋\n");
+        }
     }
 
     // Start the game loop here
     // 在这里开始游戏主体的循环
+    
     while (1) {
         // TODO: Implement game loop, input handling, move validation, win checking, etc.
         // 实现游戏循环、输入处理、落子合法性检查、胜利判断等功能。
+        printBoard(&gameState);
+        
     }
 
     return 0;
