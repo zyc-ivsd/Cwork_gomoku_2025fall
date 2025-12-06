@@ -122,16 +122,123 @@ void printBoard(GameState *gameState) {
 // 判断胜利的函数。0: 无胜利，1: 黑方胜利，2: 白方胜利
 int checkWin(GameState *gameState, int row, int col) {
     // TODO: Implement win checking logic
+    int aligned = 0;    //记录已经连成行的同色棋子
+    if(gameState->board[row][col] == BLACK){
+        //横向检查
+        for(int i = col - 4;(i <= col + 4 )&&(i < BOARD_SIZE && i >= 0);i++){
+            if(gameState->board[row][i] == BLACK){
+                aligned ++;
+                if(aligned == 5){
+                    return 1;
+                }
+            }
+            else if((gameState->board[row][i] == WHITE)||(gameState->board[row][i] == EMPTY)){
+                aligned = 0;
+                continue;
+            }
+        }
+        aligned = 0; //检查过后将aligned清零
+        //竖向检查
+        for(int i = row - 4;(i <= row + 4)&&(i < BOARD_SIZE&& i >= 0);i++){
+            if(gameState->board[i][col] == BLACK){
+                aligned ++;
+                if(aligned == 5){
+                    return 1;
+                }
+            }
+            else if((gameState->board[i][col] == WHITE)||(gameState->board[i][col] == EMPTY)){
+                aligned = 0;
+                continue;
+            }
+        }
+        aligned = 0;
+        //斜向检查
+        for(int i = -4;i <= 4 &&(row+i < BOARD_SIZE&& row+i >= 0 && col+i < BOARD_SIZE && col+i >= 0);i++){
+            if(gameState->board[row+i][col+i] == BLACK){
+                aligned ++;
+                if(aligned == 5){
+                    return 1;
+                }
+            }
+            else if((gameState->board[row+i][col+i] == WHITE)||(gameState->board[row+i][col+i] == EMPTY)){
+                aligned = 0;
+                continue;
+            }
+        }
+
+    }
+    else if(gameState->board[row][col] == WHITE){
+        //横向检查
+        for(int i = col - 4;(i <= col + 4 )&&(i < BOARD_SIZE && i >= 0);i++){
+            if(gameState->board[row][i] == WHITE){
+                aligned ++;
+                if(aligned == 5){
+                    return 2;
+                }
+            }
+            else if((gameState->board[row][i] == BLACK)||(gameState->board[row][i] == EMPTY)){
+                aligned = 0;
+                continue;
+            }
+        }
+        aligned = 0;
+        //竖向检查
+        for(int i = row - 4;(i <= row + 4)&&(i < BOARD_SIZE&& i >= 0);i++){
+            if(gameState->board[i][col] == WHITE){
+                aligned ++;
+                if(aligned == 5){
+                    return 1;
+                }
+            }
+            else if((gameState->board[i][col] == BLACK)||(gameState->board[i][col] == EMPTY)){
+                aligned = 0;
+                continue;
+            }
+        }
+        aligned = 0;
+        //斜向检查
+        for(int i = -4;i <= 4 &&(row+i < BOARD_SIZE&& row+i >= 0 && col+i < BOARD_SIZE && col+i >= 0);i++){
+            if(gameState->board[row+i][col+i] == BLACK){
+                aligned ++;
+                if(aligned == 5){
+                    return 1;
+                }
+            }
+            else if((gameState->board[row+i][col+i] == WHITE)||(gameState->board[row+i][col+i] == EMPTY)){
+                aligned = 0;
+                continue;
+            }
+        }
+
+    }
+
+    return 0;
+}
+
+
+//先手禁手函数,如果落子违反禁手规则那么返回1,否则返回0
+int ban(GameState *gameState, int row ,int col) {
+    
     return 0;
 }
 
 
 // Function to check valid move
-// 检查合法落子的函数
+// 检查合法落子的函数,合法返回1,不合法返回0
 int isValidMove(GameState *gameState, int row, int col) {
     // TODO: Implement move validation logic
-    return 0;
+    if(gameState->board[row][col] == BLACK || gameState->board[row][col] == WHITE){
+        return 0;
+    }
+    if(row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE){
+        return 0;
+    }
+
+    return 1;
 }
+
+
+
 
 
 // Main function to start the game
@@ -227,6 +334,62 @@ int main(int argc, char *argv[]) {
         // TODO: Implement game loop, input handling, move validation, win checking, etc.
         // 实现游戏循环、输入处理、落子合法性检查、胜利判断等功能。
         printBoard(&gameState);
+        if(gameMode == MODE_PVP){
+            if(gameState.currentPlayer == PLAYER_BLACK){
+                printf("轮到黑方落子\n");
+            }
+            else printf("轮到白方落子\n");
+
+        }
+        else{       //pve模式
+            if(gameState.currentPlayer == personPlayer){
+                if(personPlayer == BLACK){
+                    printf("玩家(黑方)请落子\n");
+                }
+                else printf("玩家(白方)请落子\n");
+            }
+            else {
+                printf("AI正在思考中\n");
+            }
+        }
+        //处理落子
+        int row;
+        char char_col;
+        if(gameMode == MODE_PVP || gameState.currentPlayer == personPlayer){
+            printf("请输入你的落子位置:比如:A(col)2(row)");
+            fgets(input,sizeof(input),stdin);
+            if(sscanf(input,"%c%d",&char_col,&row) == 2){
+                int col = char_col - 'A';
+                row -= 1;
+
+                if(gameState.currentPlayer == BLACK && ban(&gameState,row,col)){
+                    printf("你违反了禁手，黑方负！\n");
+                    break;
+                }
+                else if(!isValidMove(&gameState,row,col)){
+                    printf("落子非法！请重新选择位置\n");
+                }
+                else if(isValidMove(&gameState,row,col)){
+                    gameState.lastMove.col = col;
+                    gameState.lastMove.row = row;
+                    if(gameState.currentPlayer == BLACK){
+                        gameState.currentPlayer = WHITE;
+                    }
+                    else gameState.currentPlayer = BLACK;
+                }
+
+            }
+            else {
+                printf("输入格式有误！请重新输入\n");
+            }
+        }
+        else {
+            
+        }
+
+
+
+        
         
     }
 
