@@ -70,27 +70,27 @@ void printBoard(GameState *gameState) {
     for (int i = 0; i < BOARD_SIZE; i++) {
         printf("%2d ", BOARD_SIZE - i);
         for (int j = 0; j < BOARD_SIZE; j++) {
-            if (gameState->board[i][j] == BLACK) { // is black stone
+            if (gameState->board[BOARD_SIZE-1-i][j] == BLACK) { // is black stone
                 if (j == BOARD_SIZE - 1) {
-                    if (i == gameState->lastMove.row && j == gameState->lastMove.col)
+                    if (i == BOARD_SIZE-1-gameState->lastMove.row && j == gameState->lastMove.col)
                         printf("▲\n");
                     else
                         printf("●\n");
                 } else {
-                    if (i == gameState->lastMove.row && j == gameState->lastMove.col)
+                    if (i == BOARD_SIZE-1-gameState->lastMove.row && j == gameState->lastMove.col)
                         printf("▲─");
                     else
                         printf("●─");
                 }
             }
-            else if (gameState->board[i][j] == WHITE) { // is white stone
+            else if (gameState->board[BOARD_SIZE-1-i][j] == WHITE) { // is white stone
                 if (j == BOARD_SIZE - 1) {
-                    if (i == gameState->lastMove.row && j == gameState->lastMove.col)
+                    if (i == BOARD_SIZE -1-gameState->lastMove.row && j == gameState->lastMove.col)
                         printf("△\n");
                     else
                         printf("◎\n");
                 } else {
-                    if (i == gameState->lastMove.row && j == gameState->lastMove.col)
+                    if (i == BOARD_SIZE -1- gameState->lastMove.row && j == gameState->lastMove.col)
                         printf("△─");
                     else
                         printf("◎─");
@@ -122,93 +122,60 @@ void printBoard(GameState *gameState) {
 // 判断胜利的函数。0: 无胜利，1: 黑方胜利，2: 白方胜利
 int checkWin(GameState *gameState, int row, int col) {
     // TODO: Implement win checking logic
-    int aligned = 0;    //记录已经连成行的同色棋子
-    if(gameState->board[row][col] == BLACK){
-        //横向检查
-        for(int i = col - 4;(i <= col + 4 )&&(i < BOARD_SIZE && i >= 0);i++){
-            if(gameState->board[row][i] == BLACK){
-                aligned ++;
-                if(aligned == 5){
-                    return 1;
-                }
-            }
-            else if((gameState->board[row][i] == WHITE)||(gameState->board[row][i] == EMPTY)){
-                aligned = 0;
-                continue;
-            }
-        }
-        aligned = 0; //检查过后将aligned清零
-        //竖向检查
-        for(int i = row - 4;(i <= row + 4)&&(i < BOARD_SIZE&& i >= 0);i++){
-            if(gameState->board[i][col] == BLACK){
-                aligned ++;
-                if(aligned == 5){
-                    return 1;
-                }
-            }
-            else if((gameState->board[i][col] == WHITE)||(gameState->board[i][col] == EMPTY)){
-                aligned = 0;
-                continue;
-            }
-        }
-        aligned = 0;
-        //斜向检查
-        for(int i = -4;i <= 4 &&(row+i < BOARD_SIZE&& row+i >= 0 && col+i < BOARD_SIZE && col+i >= 0);i++){
-            if(gameState->board[row+i][col+i] == BLACK){
-                aligned ++;
-                if(aligned == 5){
-                    return 1;
-                }
-            }
-            else if((gameState->board[row+i][col+i] == WHITE)||(gameState->board[row+i][col+i] == EMPTY)){
-                aligned = 0;
-                continue;
-            }
-        }
+    CellState current = gameState->board[row][col];
+    //设置四个方向的查找方向向量，确保横向，竖向斜向都能被查找
+    int direction[4][2] = {
+        {1,0},
+        {0,1},
+        {1,1},
+        {1,-1}
+    };
+    for(int d = 0; d < 4; d++){      //遍历四个方向
+        int dx = direction[d][0];
+        int dy = direction[d][1];
+        int aligned = 1;   //记录连在一行的棋子个数,当前位置为1
 
-    }
-    else if(gameState->board[row][col] == WHITE){
-        //横向检查
-        for(int i = col - 4;(i <= col + 4 )&&(i < BOARD_SIZE && i >= 0);i++){
-            if(gameState->board[row][i] == WHITE){
-                aligned ++;
-                if(aligned == 5){
-                    return 2;
+        for(int i = 1;i < 5;i++){
+            int x = col + i*dx;
+            int y = row + i*dy;
+
+            if(x >= BOARD_SIZE|| x < 0 || y >= BOARD_SIZE|| y <0){
+                break;         //处理越界
+            }
+            else{
+                if(gameState->board[y][x] == current){
+                    aligned ++;
+                    if(aligned == 5){   //检测到五子立即返回
+                        return (current == BLACK)? 1:2;
+                    }
+                }
+                else{
+                    break;
                 }
             }
-            else if((gameState->board[row][i] == BLACK)||(gameState->board[row][i] == EMPTY)){
-                aligned = 0;
-                continue;
-            }
         }
-        aligned = 0;
-        //竖向检查
-        for(int i = row - 4;(i <= row + 4)&&(i < BOARD_SIZE&& i >= 0);i++){
-            if(gameState->board[i][col] == WHITE){
-                aligned ++;
-                if(aligned == 5){
-                    return 1;
+        for(int i = 1;i < 5;i++){
+            int x = col - i*dx;
+            int y = row - i*dy;
+
+            if(x < 0 ||x >= BOARD_SIZE || y < 0|| y >= BOARD_SIZE){
+                break;         //处理越界
+            }
+            else{
+                if(gameState->board[y][x] == current){
+                    aligned ++;
+                    if(aligned == 5){
+                        return (current == BLACK)? 1:2;
+                    }
+                }
+                else{
+                    break;
                 }
             }
-            else if((gameState->board[i][col] == BLACK)||(gameState->board[i][col] == EMPTY)){
-                aligned = 0;
-                continue;
-            }
         }
-        aligned = 0;
-        //斜向检查
-        for(int i = -4;i <= 4 &&(row+i < BOARD_SIZE&& row+i >= 0 && col+i < BOARD_SIZE && col+i >= 0);i++){
-            if(gameState->board[row+i][col+i] == BLACK){
-                aligned ++;
-                if(aligned == 5){
-                    return 1;
-                }
-            }
-            else if((gameState->board[row+i][col+i] == WHITE)||(gameState->board[row+i][col+i] == EMPTY)){
-                aligned = 0;
-                continue;
-            }
-        }
+        
+
+
 
     }
 
@@ -227,7 +194,7 @@ int ban(GameState *gameState, int row ,int col) {
 // 检查合法落子的函数,合法返回1,不合法返回0
 int isValidMove(GameState *gameState, int row, int col) {
     // TODO: Implement move validation logic
-    if(gameState->board[row][col] == BLACK || gameState->board[row][col] == WHITE){
+    if(gameState->board[row][col] != EMPTY){
         return 0;
     }
     if(row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE){
@@ -360,7 +327,7 @@ int main(int argc, char *argv[]) {
             fgets(input,sizeof(input),stdin);
             if(sscanf(input,"%c%d",&char_col,&row) == 2){
                 int col = char_col - 'A';
-                row -= 1;
+                row --;
 
                 if(gameState.currentPlayer == BLACK && ban(&gameState,row,col)){
                     printf("你违反了禁手，黑方负！\n");
@@ -372,10 +339,23 @@ int main(int argc, char *argv[]) {
                 else if(isValidMove(&gameState,row,col)){
                     gameState.lastMove.col = col;
                     gameState.lastMove.row = row;
-                    if(gameState.currentPlayer == BLACK){
-                        gameState.currentPlayer = WHITE;
+                    if(gameState.currentPlayer == PLAYER_BLACK){
+                        gameState.board[row][col] = BLACK;
+                        if(checkWin(&gameState,row,col) == 1){
+                            printf("黑方胜利!\n");
+                            break;
+                        }
+                        gameState.currentPlayer = PLAYER_WHITE;
+                        
                     }
-                    else gameState.currentPlayer = BLACK;
+                    else if(gameState.currentPlayer == PLAYER_WHITE){
+                        gameState.board[row][col] = WHITE;
+                        if(checkWin(&gameState,row,col) == 2){
+                            printf("白方胜利!\n");
+                            break;
+                        }
+                        gameState.currentPlayer = PLAYER_BLACK;
+                    }
                 }
 
             }
