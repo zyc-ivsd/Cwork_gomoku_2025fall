@@ -211,8 +211,15 @@ int isValidMove(GameState *gameState, int row, int col) {
 
     return 1;
 }
-
-
+//优先权函数
+int priority(GameState *gameState,int row,int col){
+    //检查五连
+    if(checkWin(gameState,row,col)){
+        return 10000;
+    }
+    //检查活四
+    
+}
 
 
 
@@ -318,10 +325,12 @@ int main(int argc, char *argv[]) {
         }
         else{       //pve模式
             if(gameState.currentPlayer == personPlayer){
-                if(personPlayer == BLACK){
+                if(personPlayer == PLAYER_BLACK){
                     printf("玩家(黑方)请落子\n");
                 }
-                else printf("玩家(白方)请落子\n");
+                else {
+                    printf("玩家(白方)请落子\n");
+                }
             }
             else {
                 printf("AI正在思考中\n");
@@ -372,7 +381,11 @@ int main(int argc, char *argv[]) {
             }
         }
         else {
-            
+            for(int i = 0;i < BOARD_SIZE;i++){
+                for(int j = 0;j < BOARD_SIZE;j++){
+                    
+                }
+            }
         }
 
 
