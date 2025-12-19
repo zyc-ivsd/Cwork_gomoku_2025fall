@@ -1,9 +1,8 @@
 // A main function to start a gomoku game
 #include "board.h"
 #include "check.h"
+#include "ai.h"
 
-
-// Main function to start the game
 // 主函数，开启游戏
 int main(int argc, char *argv[]) {
     printf("Welcome to Gomoku!\n");

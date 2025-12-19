@@ -45,6 +45,13 @@ typedef struct {
     Position lastMove; // where the last move made 
 }GameState;
 
+//定义检查边界结构体，专门用于检查活三活四等棋型
+typedef struct {
+    int aligned;
+    int one_side_open;
+    int other_side_open;
+}Check_side;
+
 
 
 void initializeGame(GameState *gameState);
