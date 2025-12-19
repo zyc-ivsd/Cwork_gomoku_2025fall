@@ -52,7 +52,7 @@ typedef struct {
     int other_side_open;
 }Check_side;
 
-
+int direction[4][2] = {{1,0},{0,1},{1,1},{1,-1}};
 
 void initializeGame(GameState *gameState);
 void printBoard(GameState *gameState);

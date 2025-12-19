@@ -3,13 +3,6 @@
 int checkWin(GameState *gameState, int row, int col) {
     
     CellState current = gameState->board[row][col];
-    //设置四个方向的查找方向向量，确保横向，竖向斜向都能被查找
-    int direction[4][2] = {
-        {1,0},
-        {0,1},
-        {1,1},
-        {1,-1}
-    };
     for(int d = 0; d < 4; d++){      //遍历四个方向
         int dx = direction[d][0];
         int dy = direction[d][1];
@@ -78,14 +71,16 @@ CellState check_vs(GameState *gamestate,int row,int col){
 }
 
 
-//返回检查边界结构体，专门用于检查活三活四等棋型
-Check_side check_side(GameState *gamestate,int row,int col,int dx,int dy){
+//返回检查边界结构体，专门用于检查活四长连等棋型
+Check_side check_side(GameState *gamestate,int row,int col,int dir){
     CellState current = gamestate ->board[row][col];
     CellState vs = check_vs(gamestate,row,col); 
     Check_side side;
     side.aligned = 1;
     side.one_side_open = 1;
     side.other_side_open = 1;
+    int dx = direction[dir][0];
+    int dy = direction[dir][1];
     for(int i = 0;i < 5;i ++){
         int x = col + dx;
         int y = row + dy;
@@ -114,74 +109,136 @@ Check_side check_side(GameState *gamestate,int row,int col,int dx,int dy){
         }
     return side;          
 }
+//辅助检查活三和冲四
+Check_side check_with_empty(GameState *gamestate,int row,int col,int dir){
+    CellState current = gamestate ->board[row][col];
+    CellState vs = check_vs(gamestate,row,col); 
+    Check_side side;
+    side.aligned = 1;
+    side.one_side_open = 1;
+    side.other_side_open = 1;
+    int dx = direction[dir][0];
+    int dy = direction[dir][1];
+    int have_empty = 0;
+    for(int i = 0;i < 5;i ++){
+        int x = col + dx;
+        int y = row + dy;
+        if(x < 0||x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) break;
+        else{
+            if(gamestate ->board[y][x] == current) side.aligned ++;
+            else if(gamestate ->board[y][x] == vs){
+                side.one_side_open = 0;
+                break;
+            }
+            else if(gamestate ->board[y][x] == EMPTY ){
+                if(have_empty == 1) break;
+                if(gamestate ->board[y + dy][x + dx] == current && 
+                gamestate -> board[y - dy][x - dx] == current && have_empty == 0){
+                    have_empty = 1;
+                    side.aligned ++;
+                }
+
+            }
+        } 
+        }
+    for(int i = 0;i < 5;i ++){
+        int x = col - dx;
+        int y = row - dy;
+        if(x < 0||x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) break;
+        else{
+            if(gamestate ->board[y][x] == current) side.aligned ++;
+            else if(gamestate ->board[y][x] == vs){
+                side.one_side_open = 0;
+                break;
+            }
+            else if(gamestate ->board[y][x] == EMPTY ){
+                if(have_empty == 1) break;
+                if(gamestate ->board[y + dy][x + dx] == current && 
+                gamestate -> board[y - dy][x - dx] == current && have_empty == 0){
+                    have_empty = 1;
+                    side.aligned ++;
+                }
+
+            }
+        } 
+        }
+    return side;
+}
+
+
 
 //检查在当前位置落下棋子是否形成活三
-int check_open_three(GameState *gamestate,int row,int col){
-    int direction[4][2] = {{1,0},{0,1},{1,1},{1,-1}};
-    for(int i = 0;i < 4;i ++){
-        int dx = direction[i][0];
-        int dy = direction[i][1];
-        Check_side side = check_side(gamestate,row,col,dx,dy);
-        if(side.aligned == 3 && side.one_side_open && side.other_side_open){
-            return 1;
-        }
+int check_open_three(GameState *gamestate,int row,int col,int dir){
+    
+    Check_side side = check_side(gamestate,row,col,dir);
+    if(side.aligned == 3 && side.one_side_open && side.other_side_open){
+        return 1;
     }
+    Check_side side_with_empty = check_with_empty(gamestate,row,col,dir);
+    if(side_with_empty.aligned == 4 && side_with_empty.one_side_open && side_with_empty.other_side_open){
+        return 1;
+    }
+    
     return 0;
 }
 
 
 // 检查在当前位置落下棋子是否形成活四
-int check_open_four(GameState *gamestate,int row,int col){
-    int direction[4][2] = {{1,0},{0,1},{1,1},{1,-1}};
-    for(int i = 0;i < 4;i ++){
-        int dx = direction[i][0];
-        int dy = direction[i][1];
-        Check_side side = check_side(gamestate,row,col,dx,dy);
-        if(side.aligned == 4 && side.one_side_open && side.other_side_open){
-            return 1;
-        }
+int check_open_four(GameState *gamestate,int row,int col,int dir){
+
+    Check_side side = check_side(gamestate,row,col,dir);
+    if(side.aligned == 4 && side.one_side_open && side.other_side_open){
+        return 1;
     }
+    
     return 0;
 }
 
 //检查在当前位置落下棋子是否形成冲四
-int check_four(GameState *gamestate,int row,int col){
-    int direction[4][2] = {{1,0},{0,1},{1,1},{1,-1}};
-    for(int i = 0;i < 4;i ++){
-        int dx = direction[i][0];
-        int dy = direction[i][1];
-        Check_side side = check_side(gamestate,row,col,dx,dy);
-        if(side.aligned == 4 && (side.one_side_open ^ side.other_side_open)){
-            return 1;
-        }
+int check_four(GameState *gamestate,int row,int col,int dir){
+
+    Check_side side = check_side(gamestate,row,col,dir);
+    if(side.aligned == 4 && (side.one_side_open ^ side.other_side_open)){
+        return 1;
     }
+    Check_side side_with_empty = check_with_empty(gamestate,row,col,dir);
+    if(side_with_empty.aligned == 5){
+        return 1;
+    }
+    
     return 0;
 }
 
 
 //检查在当前位置落下棋子是否形成双四
 int check_double_four(GameState *gamestate,int row,int col){
-
-    return 0;
+    int num_four = 0;
+    for(int dir = 0;dir < 4;dir ++){
+        if(check_four(gamestate,row,col,dir) == 1) num_four ++;
+        if(check_open_four(gamestate,row,col,dir) == 1) num_four ++;
+    }
+    return num_four >= 2;
+    
 }
 
 
 //检查在当前位置落下棋子是否形成双三
 int check_double_three(GameState *gamestate,int row,int col){
-    return 0;
+    int num_three = 0;
+    for(int dir = 0;dir < 4;dir ++){
+        if(check_open_three(gamestate,row,col,dir) == 1) num_three ++;
+    }
+    return num_three >= 2;
 }
 
 //检查是否长连
 int check_overline(GameState *gamestate,int row,int col){
-    int direction[4][2] = {{1,0},{0,1},{1,1},{1,-1}};
-    for(int i = 0;i < 4;i ++){
-        int dx = direction[i][0];
-        int dy = direction[i][1];
-        Check_side side = check_side(gamestate,row,col,dx,dy);
+    for(int dir = 0;dir < 4;dir ++){
+        Check_side side = check_side(gamestate,row,col,dir);
         if(side.aligned >= 6){
             return 1;
         }
-    }
+    }   
     return 0;
 }
 
@@ -191,6 +248,8 @@ int check_overline(GameState *gamestate,int row,int col){
 //简化禁手：判断活三时，不考虑在下一步成为活四是不是禁手
 //除此之外实现功能：检查双三，双四，长连
 int ban(GameState *gameState, int row ,int col) {
-    
+    if(check_double_three(gameState,row,col)) return 1;
+    if(check_double_four(gameState,row,col)) return 1;
+    if(check_overline(gameState,row,col)) return 1;
     return 0;
 }
