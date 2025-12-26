@@ -12,6 +12,10 @@ int check_open_three(GameState *gamestate,int row,int col,int dir);
 
 int check_open_four(GameState *gamestate,int row,int col,int dir);
 
+int check_four(GameState *gamestate,int row,int col,int dir);
+
+int check_oneline_four(GameState *gamestate,int row ,int col,int dir);
+
 int check_double_four(GameState *gamestate,int row,int col);
 
 int check_double_three(GameState *gamestate,int row,int col);

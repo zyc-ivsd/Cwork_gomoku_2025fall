@@ -142,11 +142,14 @@ Check_side check_with_empty(GameState *gamestate,int row,int col,int dir){
             else if(gamestate ->board[y][x] == EMPTY ){
                 //检查有无特殊空格，也就是两边都是目标棋子
                 if(have_empty == 1) break;//特殊空格数量只记录一次
-                if(gamestate ->board[y + dy][x + dx] == current && 
-                gamestate -> board[y - dy][x - dx] == current && have_empty == 0){
+                int next_x = x + dx;int next_y = y + dy;
+                if(next_x<0 || next_x>=BOARD_SIZE || next_y<0 ||next_y>=BOARD_SIZE) break;
+                else{
+                    if(gamestate ->board[next_y][next_x] == current){
                     have_empty = 1;
                     side.aligned ++;
                 }
+            }
 
             }
         } 
@@ -166,10 +169,14 @@ Check_side check_with_empty(GameState *gamestate,int row,int col,int dir){
             }
             else if(gamestate ->board[y][x] == EMPTY ){
                 if(have_empty == 1) break;
-                if(gamestate ->board[y + dy][x + dx] == current){
+                int next_x = x - dx; int next_y = y - dy;
+                if(next_x<0 || next_x>=BOARD_SIZE || next_y<0 ||next_y>=BOARD_SIZE) break;
+                else{
+                    if(gamestate ->board[next_y][next_x] == current){
                     have_empty = 1;
                     side.aligned ++;
                 }
+            }
 
             }
         } 
@@ -191,7 +198,7 @@ Check_side check_with_empty2(GameState *gamestate,int row,int col,int dir){
     for(int i = 0; i < 5;i++){
         int x = col + dx;
         int y = row + dy;
-        if(x<0 && x>= BOARD_SIZE && y<0 && y>= BOARD_SIZE){
+        if(x<0 || x>= BOARD_SIZE || y<0 || y>= BOARD_SIZE){
             side.one_side_open = 0;
             break;
         }
@@ -203,8 +210,10 @@ Check_side check_with_empty2(GameState *gamestate,int row,int col,int dir){
             }
             else if(gamestate->board[y][x] == EMPTY){
                 if(has_empty == 1) break;
+                int next_x = x + dx;int next_y = y + dy;
+                if(next_x<0 || next_x>=BOARD_SIZE || next_y<0 ||next_y>=BOARD_SIZE) break;
                 else{
-                    if(gamestate->board[y+dy][x+dx] == EMPTY){
+                    if(gamestate->board[next_y][next_x] == EMPTY){
                         has_empty = 1;
                         side.aligned ++;
                     }
@@ -215,7 +224,7 @@ Check_side check_with_empty2(GameState *gamestate,int row,int col,int dir){
     for(int i = 0; i < 5;i++){
         int x = col - dx;
         int y = row - dy;
-        if(x<0 && x>= BOARD_SIZE && y<0 && y>= BOARD_SIZE){
+        if(x<0 || x>= BOARD_SIZE || y<0 || y>= BOARD_SIZE){
             side.other_side_open = 0;
             break;
         }
@@ -227,8 +236,10 @@ Check_side check_with_empty2(GameState *gamestate,int row,int col,int dir){
             }
             else if(gamestate->board[y][x] == EMPTY){
                 if(has_empty == 1) break;
+                int next_x = x - dx;int next_y = y - dy;
+                if(next_x<0 || next_x>=BOARD_SIZE || next_y<0 ||next_y>=BOARD_SIZE) break;
                 else{
-                    if(gamestate->board[y-dy][x-dx] == EMPTY){
+                    if(gamestate->board[next_y][next_x] == EMPTY){
                         has_empty = 1;
                         side.aligned ++;
                     }
@@ -287,7 +298,7 @@ int check_oneline_four(GameState *gamestate,int row ,int col,int dir){
     int check_2 = 1;
     int check_3 = 1;
     int check_4 = 1;
-    CellState current = gamestate->board[col][row];
+    CellState current = gamestate->board[row][col];
     CellState vs = check_vs(gamestate,row,col);
     //双冲四情况，最可能是中间那颗落子造成
     int chess[9] = {-1,-1,-1,-1,1,-1,-1,-1,-1};
@@ -299,7 +310,7 @@ int check_oneline_four(GameState *gamestate,int row ,int col,int dir){
     for(int i = 1; i <= 4;i++){
         int x = col + dx;
         int y = row + dy;
-        if(x<0 && x >= BOARD_SIZE && y<0 && y>= BOARD_SIZE) break;
+        if(x<0 || x >= BOARD_SIZE || y<0 || y>= BOARD_SIZE) break;
         else {
             if(gamestate->board[y][x]==current) chess[4 + i] = 1;
             else if(gamestate->board[y][x]==vs){
@@ -312,7 +323,7 @@ int check_oneline_four(GameState *gamestate,int row ,int col,int dir){
     for(int i = 1; i <= 4;i++){
         int x = col - dx;
         int y = row - dy;
-        if(x<0 && x >= BOARD_SIZE && y<0 && y>= BOARD_SIZE) break;
+        if(x<0 || x >= BOARD_SIZE || y<0 || y>= BOARD_SIZE) break;
         else {
             if(gamestate->board[y][x]==current) chess[4 - i] = 1;
             else if(gamestate->board[y][x]==vs){
@@ -394,13 +405,7 @@ int check_overline(GameState *gamestate,int row,int col){
 //除此之外实现功能：检查双三，双四，长连,以及混合禁手
 int ban(GameState *gameState, int row ,int col) {
     if(check_overline(gameState,row,col)) return 1;
-    int multi = 0;
-    for(int dir = 0;dir < 4;dir++){
-        if(check_four(gameState,row,col,dir) == 1) multi++;
-        if(check_oneline_four(gameState,row,col,dir)==1) return 1;
-        if(check_open_four(gameState,row,col,dir)==1)multi++;
-        if(check_open_three(gameState,row,col,dir)==1)multi++;
-
-    }
-    return multi >= 2;
+    if(check_double_three(gameState,row,col)) return 1;
+    if(check_double_four(gameState,row,col)) return 1;
+    
 }
