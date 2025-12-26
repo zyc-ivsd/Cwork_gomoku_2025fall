@@ -407,8 +407,17 @@ int ban(GameState *gameState, int row ,int col) {
     if (gameState->board[row][col] != BLACK) {
         return 0; // 不是黑棋，不可能是禁手
     }
-    if(check_overline(gameState,row,col)) return 1;
-    if(check_double_three(gameState,row,col)) return 1;
-    if(check_double_four(gameState,row,col)) return 1;
+    if(check_overline(gameState,row,col)){
+        printf("(%c,%d)位置黑棋落子形成长连\n",col+'A',row+1); 
+        return 1;
+    }
+    if(check_double_three(gameState,row,col)){
+        printf("(%c,%d)位置黑棋落子形成双活三\n",col+'A',row+1);
+        return 1;
+    }
+    if(check_double_four(gameState,row,col)){
+        printf("(%c,%d)位置黑棋落子形成双四\n",col+'A',row+1);
+        return 1;
+    }
     return 0;
 }

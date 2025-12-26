@@ -134,14 +134,17 @@ int main(int argc, char *argv[]) {
                 gameState.board[row][col] = (gameState.currentPlayer == PLAYER_BLACK)? BLACK:WHITE;
                 int winner = checkWin(&gameState,row,col);
                 if(winner == 1){
+                    printBoard(&gameState);
                     printf("黑方胜利!\n");
                     break;
                 }
                 if(winner == 2){
+                    printBoard(&gameState);
                     printf("白方胜利!\n");
                     break;
                 }
                 if(gameState.currentPlayer == PLAYER_BLACK && ban(&gameState,row,col)){
+                    printBoard(&gameState);
                     printf("你违反了禁手，黑方负！\n");
                     break;
                 }
