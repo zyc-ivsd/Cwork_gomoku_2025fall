@@ -81,9 +81,9 @@ Check_side check_side(GameState *gamestate,int row,int col,int dir){
     side.other_side_open = 1;
     int dx = direction[dir][0];
     int dy = direction[dir][1];
-    for(int i = 0;i < 5;i ++){
-        int x = col + dx;
-        int y = row + dy;
+    for(int i = 1;i < 5;i ++){
+        int x = col + i*dx;
+        int y = row + i*dy;
         if(x < 0||x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE){
             side.one_side_open = 0;//说明碰到棋盘边界，将一端设为封闭
             break;
@@ -97,9 +97,9 @@ Check_side check_side(GameState *gamestate,int row,int col,int dir){
             else if(gamestate ->board[y][x] == EMPTY) break;
         } 
         }
-    for(int i = 0;i < 5;i ++){
-        int x = col - dx;
-        int y = row - dy;
+    for(int i = 1;i < 5;i ++){
+        int x = col - i*dx;
+        int y = row - i*dy;
         if(x < 0||x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE){
             side.other_side_open = 0; //说明碰到棋盘边界，将一端设为封闭
             break;
@@ -126,9 +126,9 @@ Check_side check_with_empty(GameState *gamestate,int row,int col,int dir){
     int dx = direction[dir][0];
     int dy = direction[dir][1];
     int have_empty = 0;//特殊空格数量
-    for(int i = 0;i < 5;i ++){
-        int x = col + dx;
-        int y = row + dy;
+    for(int i = 1;i < 5;i ++){
+        int x = col + i*dx;
+        int y = row + i*dy;
         if(x < 0||x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE){ 
             side.one_side_open  = 0 ;
             break;
@@ -154,9 +154,9 @@ Check_side check_with_empty(GameState *gamestate,int row,int col,int dir){
             }
         } 
         }
-    for(int i = 0;i < 5;i ++){
-        int x = col - dx;
-        int y = row - dy;
+    for(int i = 1;i < 5;i ++){
+        int x = col - i*dx;
+        int y = row - i*dy;
         if(x < 0||x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE){
             side.other_side_open = 0; 
             break;
@@ -195,9 +195,9 @@ Check_side check_with_empty2(GameState *gamestate,int row,int col,int dir){
     side.other_side_open = 1;
     int dx = direction[dir][0];
     int dy = direction[dir][1];
-    for(int i = 0; i < 5;i++){
-        int x = col + dx;
-        int y = row + dy;
+    for(int i = 1; i < 5;i++){
+        int x = col + i*dx;
+        int y = row + i*dy;
         if(x<0 || x>= BOARD_SIZE || y<0 || y>= BOARD_SIZE){
             side.one_side_open = 0;
             break;
@@ -221,9 +221,9 @@ Check_side check_with_empty2(GameState *gamestate,int row,int col,int dir){
             }
         }
     }
-    for(int i = 0; i < 5;i++){
-        int x = col - dx;
-        int y = row - dy;
+    for(int i = 1; i < 5;i++){
+        int x = col - i*dx;
+        int y = row - i*dy;
         if(x<0 || x>= BOARD_SIZE || y<0 || y>= BOARD_SIZE){
             side.other_side_open = 0;
             break;
@@ -308,8 +308,8 @@ int check_oneline_four(GameState *gamestate,int row ,int col,int dir){
     int dx = direction[dir][0];
     int dy = direction[dir][1];
     for(int i = 1; i <= 4;i++){
-        int x = col + dx;
-        int y = row + dy;
+        int x = col + i*dx;
+        int y = row + i*dy;
         if(x<0 || x >= BOARD_SIZE || y<0 || y>= BOARD_SIZE) break;
         else {
             if(gamestate->board[y][x]==current) chess[4 + i] = 1;
@@ -321,8 +321,8 @@ int check_oneline_four(GameState *gamestate,int row ,int col,int dir){
         }
     }
     for(int i = 1; i <= 4;i++){
-        int x = col - dx;
-        int y = row - dy;
+        int x = col - i*dx;
+        int y = row - i*dy;
         if(x<0 || x >= BOARD_SIZE || y<0 || y>= BOARD_SIZE) break;
         else {
             if(gamestate->board[y][x]==current) chess[4 - i] = 1;
@@ -404,8 +404,11 @@ int check_overline(GameState *gamestate,int row,int col){
 //简化禁手：判断活三时，不考虑在下一步成为活四是不是禁手
 //除此之外实现功能：检查双三，双四，长连,以及混合禁手
 int ban(GameState *gameState, int row ,int col) {
+    if (gameState->board[row][col] != BLACK) {
+        return 0; // 不是黑棋，不可能是禁手
+    }
     if(check_overline(gameState,row,col)) return 1;
     if(check_double_three(gameState,row,col)) return 1;
     if(check_double_four(gameState,row,col)) return 1;
-    
+    return 0;
 }

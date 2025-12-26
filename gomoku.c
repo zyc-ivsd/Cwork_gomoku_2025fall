@@ -125,34 +125,27 @@ int main(int argc, char *argv[]) {
                 int col = char_col - 'A';
                 row --;
 
-                if(gameState.currentPlayer == BLACK && ban(&gameState,row,col)){
+                if(!isValidMove(&gameState,row,col)){
+                    printf("落子非法！请重新选择位置\n");
+                    continue;
+                }
+                gameState.lastMove.col = col;
+                gameState.lastMove.row = row;
+                gameState.board[row][col] = (gameState.currentPlayer == PLAYER_BLACK)? BLACK:WHITE;
+                int winner = checkWin(&gameState,row,col);
+                if(winner == 1){
+                    printf("黑方胜利!\n");
+                    break;
+                }
+                if(winner == 2){
+                    printf("白方胜利!\n");
+                    break;
+                }
+                if(gameState.currentPlayer == PLAYER_BLACK && ban(&gameState,row,col)){
                     printf("你违反了禁手，黑方负！\n");
                     break;
                 }
-                else if(!isValidMove(&gameState,row,col)){
-                    printf("落子非法！请重新选择位置\n");
-                }
-                else if(isValidMove(&gameState,row,col)){
-                    gameState.lastMove.col = col;
-                    gameState.lastMove.row = row;
-                    if(gameState.currentPlayer == PLAYER_BLACK){
-                        gameState.board[row][col] = BLACK;
-                        if(checkWin(&gameState,row,col) == 1){
-                            printf("黑方胜利!\n");
-                            break;
-                        }
-                        gameState.currentPlayer = PLAYER_WHITE;
-                        
-                    }
-                    else if(gameState.currentPlayer == PLAYER_WHITE){
-                        gameState.board[row][col] = WHITE;
-                        if(checkWin(&gameState,row,col) == 2){
-                            printf("白方胜利!\n");
-                            break;
-                        }
-                        gameState.currentPlayer = PLAYER_BLACK;
-                    }
-                }
+            gameState.currentPlayer = (gameState.currentPlayer == PLAYER_BLACK) ? PLAYER_WHITE : PLAYER_BLACK;
 
             }
             else {

@@ -1,3 +1,5 @@
+#ifndef BOARD_H
+#define BOARD_H
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -52,7 +54,9 @@ typedef struct {
     int other_side_open;
 }Check_side;
 
-int direction[4][2] = {{1,0},{0,1},{1,1},{1,-1}};
+extern int direction[4][2] ;
 
 void initializeGame(GameState *gameState);
 void printBoard(GameState *gameState);
+
+#endif

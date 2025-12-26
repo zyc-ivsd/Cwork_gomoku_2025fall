@@ -1,5 +1,5 @@
 #include "board.h"
-
+int direction[4][2] = {{1,0},{0,1},{1,1},{1,-1}};
 // Function to initialize the game state
 // 初始化游戏状态的函数
 void initializeGame(GameState *gameState) {
@@ -7,7 +7,7 @@ void initializeGame(GameState *gameState) {
     gameState->lastMove.col = -1;    
     gameState->lastMove.row = -1;
 //刚开始执行程序的的时候，有莫名其妙的输出：Your last move was A2
-//经询问AI，得知是因为没有初始化lastmove，分配的是垃圾值，所以这里给个无效初始化
+//是因为没有初始化lastmove，分配的是垃圾值，所以这里给个无效初始化
 
     for (int i = 0; i < BOARD_SIZE; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {

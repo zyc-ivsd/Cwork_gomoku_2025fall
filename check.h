@@ -1,3 +1,5 @@
+#ifndef CHECK_H
+#define CHECK_H
 #include "board.h"
 
 //实现三个检查函数：检查胜利，检查非法落子，检查禁手
@@ -23,3 +25,5 @@ int check_double_three(GameState *gamestate,int row,int col);
 int check_overline(GameState *gamestate,int row,int col);
 
 int ban(GameState *gameState, int row ,int col);
+
+#endif
