@@ -2,14 +2,15 @@
 #include "check.h"
 //AI下棋所需要的函数
 //Part 1:evaluate 
-int evaluate_position(GameState *gamestate,int row,int col,CellState Player);
-int evaluate_threat(GameState *gamestate,int row,int col,CellState Player);
+int evaluate_position(GameState *gamestate,int row,int col,Player player);
+
+int getpattenscore(GameState *state,int row,int col,Player player);
+
 
 
 
 //Part 2:candidate 
-
-int generate_position(GameState *gamestate,Position candidates[],CellState Player);
+int generate_position(GameState *gamestate,Position candidates[],Player aiplayer);
 
 
 
@@ -19,5 +20,6 @@ int generate_position(GameState *gamestate,Position candidates[],CellState Playe
 
 
 //Part 4:decide
-Position decide(GameState *gamestate);
+Position bestMove(GameState *state,Player aiplayer);
+
 

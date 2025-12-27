@@ -79,6 +79,8 @@ Check_side check_side(GameState *gamestate,int row,int col,int dir){
     side.aligned = 1;
     side.one_side_open = 1;
     side.other_side_open = 1;
+    side.left_empty = 0;
+    side.right_empty = 0;
     int dx = direction[dir][0];
     int dy = direction[dir][1];
     for(int i = 1;i < 5;i ++){
@@ -94,7 +96,10 @@ Check_side check_side(GameState *gamestate,int row,int col,int dir){
                 side.one_side_open = 0;
                 break;
             }
-            else if(gamestate ->board[y][x] == EMPTY) break;
+            else if(gamestate ->board[y][x] == EMPTY){ 
+                if(side.right_empty == 0) side.right_empty = 1;
+                else break;
+            }
         } 
         }
     for(int i = 1;i < 5;i ++){
@@ -110,7 +115,10 @@ Check_side check_side(GameState *gamestate,int row,int col,int dir){
                 side.other_side_open = 0;
                 break;
             }
-            else if(gamestate ->board[y][x] == EMPTY) break;
+            else if(gamestate ->board[y][x] == EMPTY) {
+                if(side.left_empty == 0) side.left_empty = 1;
+                else break;
+            }
         } 
         }
     return side;          
@@ -139,7 +147,7 @@ Check_side check_with_empty(GameState *gamestate,int row,int col,int dir){
                 side.one_side_open = 0;
                 break;
             }
-            else if(gamestate ->board[y][x] == EMPTY ){
+            else if(gamestate ->board[y][x] == EMPTY){
                 //检查有无特殊空格，也就是两边都是目标棋子
                 if(have_empty == 1) break;//特殊空格数量只记录一次
                 int next_x = x + dx;int next_y = y + dy;
@@ -184,83 +192,18 @@ Check_side check_with_empty(GameState *gamestate,int row,int col,int dir){
     return side;
 }
 
-//辅助检查连活三
-Check_side check_with_empty2(GameState *gamestate,int row,int col,int dir){
-    Check_side side;
-    CellState current = gamestate->board[row][col];
-    CellState vs = check_vs(gamestate,row,col);
-    int has_empty = 0;
-    side.aligned = 1;
-    side.one_side_open = 1;
-    side.other_side_open = 1;
-    int dx = direction[dir][0];
-    int dy = direction[dir][1];
-    for(int i = 1; i < 5;i++){
-        int x = col + i*dx;
-        int y = row + i*dy;
-        if(x<0 || x>= BOARD_SIZE || y<0 || y>= BOARD_SIZE){
-            side.one_side_open = 0;
-            break;
-        }
-        else{
-            if(gamestate->board[y][x] == current) side.aligned ++;
-            else if(gamestate->board[y][x] == vs){
-                side.one_side_open = 0;
-                break;
-            }
-            else if(gamestate->board[y][x] == EMPTY){
-                if(has_empty == 1) break;
-                int next_x = x + dx;int next_y = y + dy;
-                if(next_x<0 || next_x>=BOARD_SIZE || next_y<0 ||next_y>=BOARD_SIZE) break;
-                else{
-                    if(gamestate->board[next_y][next_x] == EMPTY){
-                        has_empty = 1;
-                        side.aligned ++;
-                    }
-                }
-            }
-        }
-    }
-    for(int i = 1; i < 5;i++){
-        int x = col - i*dx;
-        int y = row - i*dy;
-        if(x<0 || x>= BOARD_SIZE || y<0 || y>= BOARD_SIZE){
-            side.other_side_open = 0;
-            break;
-        }
-        else{
-            if(gamestate->board[y][x] == current) side.aligned ++;
-            else if(gamestate->board[y][x] == vs){
-                side.other_side_open = 0;
-                break;
-            }
-            else if(gamestate->board[y][x] == EMPTY){
-                if(has_empty == 1) break;
-                int next_x = x - dx;int next_y = y - dy;
-                if(next_x<0 || next_x>=BOARD_SIZE || next_y<0 ||next_y>=BOARD_SIZE) break;
-                else{
-                    if(gamestate->board[next_y][next_x] == EMPTY){
-                        has_empty = 1;
-                        side.aligned ++;
-                    }
-                }
-            }
-        }
-    }
-    return side;
-}
 
 //检查在当前位置落下棋子是否形成活三
 int check_open_three(GameState *gamestate,int row,int col,int dir){
     int num_three = 0;
-    Check_side side = check_with_empty2(gamestate,row,col,dir);
-    if(side.aligned == 4 && side.one_side_open && side.other_side_open){
+    Check_side side = check_side(gamestate,row,col,dir);
+    if(side.aligned == 3 && (side.one_side_open||side.other_side_open) &&side.left_empty&&side.right_empty){
         num_three ++;
-    }//用于检查连活三 _XXX_ _ 
+    }//用于检查连活三 _XXX_ 
     Check_side side_with_empty = check_with_empty(gamestate,row,col,dir);
     if(side_with_empty.aligned == 4 && side_with_empty.one_side_open && side_with_empty.other_side_open){
         num_three ++;
-    }//用于检查跳活三,仅包含一个空格的连续序列数量为4 _XX_X_
+    }//用于检查跳活三,仅包含一个空格的连续序列数量为4 XX_X
     
     return num_three;
 }
@@ -283,7 +226,7 @@ int check_four(GameState *gamestate,int row,int col,int dir){
     Check_side side = check_side(gamestate,row,col,dir);
     if(side.aligned == 4 && (side.one_side_open ^ side.other_side_open)){
         num_four ++;
-    } // OXXXX_  |XXXX_
+    } // OXXXX  |XXXX
     Check_side side_with_empty = check_with_empty(gamestate,row,col,dir);
     if(side_with_empty.aligned == 5){
         num_four ++;
@@ -291,9 +234,27 @@ int check_four(GameState *gamestate,int row,int col,int dir){
     
     return num_four;
 }
+//检查眠三  OXXX_  /OXX_X
+int check_three(GameState *state,int row,int col,int dir){
+    Check_side side = check_side(state,row,col,dir);
+    if(side.aligned == 4 &&(side.one_side_open ^ side.other_side_open)&&(side.left_empty ^ side.right_empty)){
+        return 1;
+    }
+    Check_side side_with_empty = check_with_empty(state,row,col,dir);
+    if(side_with_empty.aligned == 4 &&(side_with_empty.one_side_open ^ side_with_empty.other_side_open)) return 1;
+    return 0;
+}
+//检查活二
+int check_two(GameState *state,int row,int col,int dir){
+    Check_side side = check_side(state,row,col,dir);
+    if(side.aligned == 2 && (side.one_side_open||side.other_side_open)&&side.left_empty&&side.right_empty) return 1;
+    Check_side side_with_empty = check_with_empty(state,row,col,dir);
+    if(side_with_empty.aligned == 3&&side_with_empty.one_side_open&&side_with_empty.other_side_open) return 1;
+    return 0;
+}
 
 //检查同一方向的冲四数目是否大于1
-int check_oneline_four(GameState *gamestate,int row ,int col,int dir){
+int check_oneline_four(GameState *gamestate,int row,int col,int dir){
     int check_1 = 1;
     int check_2 = 1;
     int check_3 = 1;

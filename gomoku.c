@@ -157,11 +157,28 @@ int main(int argc, char *argv[]) {
         }
         //AI下棋部分
         else {
-            for(int i = 0;i < BOARD_SIZE;i++){
-                for(int j = 0;j < BOARD_SIZE;j++){
-                    
+            Position aimove = bestMove(&gameState,gameState.currentPlayer);
+            CellState aicolor = (aiPlayer == PLAYER_BLACK)? BLACK:WHITE;
+            gameState.board[aimove.row][aimove.col] = aicolor;
+            int winner = checkWin(&gameState,aimove.row,aimove.col);
+                if(winner == 1){
+                    printBoard(&gameState);
+                    printf("黑方胜利!\n");
+                    break;
                 }
-            }
+                if(winner == 2){
+                    printBoard(&gameState);
+                    printf("白方胜利!\n");
+                    break;
+                }
+                if(gameState.currentPlayer == PLAYER_BLACK && ban(&gameState,aimove.row,aimove.col)){
+                    printBoard(&gameState);
+                    printf("你违反了禁手，黑方负！\n");
+                    break;
+                }
+            gameState.currentPlayer = (gameState.currentPlayer == PLAYER_BLACK) ? PLAYER_WHITE : PLAYER_BLACK;
+
+
         }
 
 
