@@ -6,6 +6,8 @@ int getpattenscore(GameState *state,int row,int col,Player player);
 int generate_position(GameState *gamestate,Position candidates[],Player aiplayer);
 Position bestMove(GameState *state,Player aiplayer);
 
+
+
 Position bestMove(GameState *state,Player aiplayer){
     Position move;
     int bestscore = -1000000;
@@ -42,7 +44,7 @@ int evaluate_position(GameState *gamestate,int row,int col,Player player){
    gamestate->board[row][col] = humancolor;
    int defensescore = getpattenscore(gamestate,row,col,player);
    gamestate->board[row][col] = aicolor;
-   return attackscore + 1.2 * defensescore; 
+   return  attackscore +  2* defensescore; 
 }
 int getpattenscore(GameState *state,int row,int col, Player player){
     CellState color = (player == PLAYER_BLACK)? BLACK:WHITE;
@@ -62,7 +64,7 @@ int getpattenscore(GameState *state,int row,int col, Player player){
         }
         if(check_open_three(state,row,col,dir)){
             num_three ++;
-            score += 5000; //记录活三加分和数量
+            score += 8000; //记录活三加分和数量
         }
         if(check_three(state,row,col,dir)) score += 1000;  //眠三加分
         if(check_two(state,row,col,dir)) score += 500;  //活二加分
@@ -79,6 +81,7 @@ int generate_position(GameState *gamestate,Position candidates[],Player aiplayer
     int count = -1;
     CellState aicolor = (aiplayer == PLAYER_BLACK)? BLACK:WHITE;
     int adjcent[BOARD_SIZE][BOARD_SIZE] = {0};
+    int quick_score[MaxCandidate] = {0};
     for(int row=0;row < BOARD_SIZE;row++){
         for(int col = 0;col< BOARD_SIZE;col++){
             if(gamestate->board[row][col] != EMPTY){
@@ -101,9 +104,25 @@ int generate_position(GameState *gamestate,Position candidates[],Player aiplayer
         for(int c = 0;c < BOARD_SIZE;c ++){
             if(count >= MaxCandidate - 1) return count;
             if(adjcent[r][c] == 1){
-                ++ count;
-                candidates[count].row = r;
-                candidates[count].col = c;
+                gamestate->board[r][c] = aicolor;
+                int get = getpattenscore(gamestate,r,c,aiplayer);
+                if(count < MaxCandidate -1){
+                    count ++;
+                    candidates[count].row = r;
+                    candidates[count].col = c;
+                }
+                int j = count;
+                while (j > 0 && get > quick_score[j-1]) {
+                    quick_score[j] = quick_score[j-1];
+                    candidates[j] = candidates[j-1];
+                    j--;
+                }
+                quick_score[j] = get;
+                candidates[j].row = r;
+                candidates[j].col = c;
+
+                gamestate->board[r][c] = EMPTY;
+                
             }
         }
     }
@@ -114,7 +133,7 @@ int generate_position(GameState *gamestate,Position candidates[],Player aiplayer
         return 1;
     }
 
-    return 0;
+    return count + 1;
 }
 
 
