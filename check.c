@@ -234,6 +234,16 @@ int check_four(GameState *gamestate,int row,int col,int dir){
     
     return num_four;
 }
+
+//检查在当前位置落下棋子是否形成XX_XX型跳四（最危险的冲四）
+int check_jump_four(GameState *gamestate,int row,int col,int dir){
+    Check_side side_with_empty = check_with_empty(gamestate,row,col,dir);
+    // aligned==5 且两端都开放 表示 XX_XX 形式的跳四
+    if(side_with_empty.aligned == 5 && side_with_empty.one_side_open && side_with_empty.other_side_open){
+        return 1;
+    }
+    return 0;
+}
 //检查眠三  OXXX_  /OXX_X
 int check_three(GameState *state,int row,int col,int dir){
     Check_side side = check_side(state,row,col,dir);
@@ -329,8 +339,11 @@ int check_oneline_four(GameState *gamestate,int row,int col,int dir){
 int check_double_four(GameState *gamestate,int row,int col){
     int num_four = 0;
     for(int dir = 0;dir < 4;dir ++){
-        if(check_four(gamestate,row,col,dir) == 1) num_four ++;
-        if(check_open_four(gamestate,row,col,dir) == 1) num_four ++;
+        // 同一方向只能是有四或没四，用OR而不是分别加
+        if(check_four(gamestate,row,col,dir) == 1 || check_open_four(gamestate,row,col,dir) == 1) {
+            num_four ++;
+        }
+        // 检查同一方向的双冲四（特殊情况）
         if(check_oneline_four(gamestate,row,col,dir) == 1) return 1;
     }  //检查四个不同方向的四的数目
     //检查同一方向的冲四数目 XXX_X_XXX  XX_XX_XX  X_XXX_X

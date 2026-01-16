@@ -8,7 +8,7 @@
 #define SEARCH_DEPTH 10
 #define MAX_SCORE 1000000
 #define MIN_SCORE -1000000
-#define MaxCandidate 30
+#define MaxCandidate 100
 #define MinScore 100
 #define TIME_LIMIT 15.0  // 每步最大思考时间15秒
 
@@ -91,64 +91,99 @@ Position bestMove(GameState *state, Player aiplayer) {
         state->board[row][col] = EMPTY;
     }
     
-    // 优先级3：计算棋局整体得分，决定防守优先或进攻优先
-    int board_state = evaluate_board_state(state, aiplayer, human_player);
-    int defense_priority = (board_state < 0);  // 如果对手威胁大，优先防守
+    // 优先级3：强力防守 - 检查所有空位，优先防守紧贴对手棋子的位置
+    // 这是最高防守优先级，无论棋局形势如何都要执行
+    int best_defense_row = -1;
+    int best_defense_col = -1;
+    int best_defense_score = -1;
     
-    // 优先级4：在防守优先的情况下，检查对手是否有活三或冲四
-    if (defense_priority) {
-        for (int i = 0; i < candidate_num && i < 15; i++) {
-            int row = candidates[i].row;
-            int col = candidates[i].col;
+    // 遍历棋盘上的所有空位
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        for (int j = 0; j < BOARD_SIZE; j++) {
+            if (state->board[i][j] != EMPTY) {
+                continue;  // 跳过非空位
+            }
             
-            if (state->board[row][col] != EMPTY) {
+            // 检查这个空位的8个邻近位置是否有对手棋子
+            int has_opponent_nearby = 0;
+            for (int di = -1; di <= 1; di++) {
+                for (int dj = -1; dj <= 1; dj++) {
+                    if (di == 0 && dj == 0) continue;
+                    int ni = i + di;
+                    int nj = j + dj;
+                    if (ni >= 0 && ni < BOARD_SIZE && nj >= 0 && nj < BOARD_SIZE && 
+                        state->board[ni][nj] == human_color) {
+                        has_opponent_nearby = 1;
+                        break;
+                    }
+                }
+                if (has_opponent_nearby) break;
+            }
+            
+            // 只检查紧贴对手棋子的空位
+            if (!has_opponent_nearby) {
                 continue;
             }
             
-            // 临时放置对手棋子，检查威胁
-            state->board[row][col] = human_color;
-            int threat_count = 0;
+            // 临时放置对手棋子，检查这个位置是否形成威胁
+            state->board[i][j] = human_color;
+            int threat_score = 0;
             
-            // 检查对手活三
+            // 检查对手活四（最高威胁，权重5000）
             for (int dir = 0; dir < 4; dir++) {
-                if (check_open_three(state, row, col, dir)) {
-                    threat_count++;
+                if (check_open_four(state, i, j, dir)) {
+                    threat_score += 5000;
                 }
             }
             
-            // 检查对手冲四
+            // 检查对手XX_XX型跳四（最危险的冲四，权重4500 > 普通冲四3000）
             for (int dir = 0; dir < 4; dir++) {
-                if (check_four(state, row, col, dir)) {
-                    threat_count += 2;  // 冲四权重更高
+                if (check_jump_four(state, i, j, dir)) {
+                    threat_score += 4500;
                 }
             }
             
-            // 检查对手活四（最高威胁）
+            // 检查对手冲四（权重3000）
             for (int dir = 0; dir < 4; dir++) {
-                if (check_open_four(state, row, col, dir)) {
-                    threat_count += 5;
+                if (check_four(state, i, j, dir)) {
+                    threat_score += 3000;
                 }
             }
             
-            state->board[row][col] = EMPTY;
+            // 检查对手活三（权重1000）
+            for (int dir = 0; dir < 4; dir++) {
+                if (check_open_three(state, i, j, dir)) {
+                    threat_score += 1000;
+                }
+            }
             
-            // 如果对手在此处形成活三、冲四或活四，必须防守
-            if (threat_count > 0) {
-                move.row = row;
-                move.col = col;
-                clock_t end_time = clock();
-                printf("AI落子位置: %c%d (防守威胁: %d)\n", 'A' + move.col, move.row + 1, threat_count);
-                printf("AI Time: %.2f seconds\n", get_elapsed_time(start_time, end_time));
-                return move;
+            state->board[i][j] = EMPTY;
+            
+            // 记录最危险的防守位置
+            if (threat_score > best_defense_score) {
+                best_defense_score = threat_score;
+                best_defense_row = i;
+                best_defense_col = j;
             }
         }
     }
     
-    // 优先级5：检查AI自己的进攻机会（活三、冲四、活四）
+    // 如果找到对手的冲四或活三威胁，立即防守
+    if (best_defense_row != -1 && best_defense_col != -1 && best_defense_score >= 1000) {
+        move.row = best_defense_row;
+        move.col = best_defense_col;
+        clock_t end_time = clock();
+        printf("AI落子位置: %c%d (防守危险: %d)\n", 'A' + move.col, move.row + 1, best_defense_score);
+        printf("AI Time: %.2f seconds\n", get_elapsed_time(start_time, end_time));
+        return move;
+    }
+    
+    // 优先级4：检查AI自己的进攻机会（活三、冲四、活四）
+    // 但这些机会的权重要低于对手的防守威胁
     int best_attack_idx = -1;
     int best_attack_score = -1;
     
-    for (int i = 0; i < candidate_num && i < 15; i++) {
+    for (int i = 0; i < candidate_num && i < 20; i++) {  // 进攻只检查前20个候选位置，进行优化
         int row = candidates[i].row;
         int col = candidates[i].col;
         
@@ -188,16 +223,16 @@ Position bestMove(GameState *state, Player aiplayer) {
         }
     }
     
-    // 如果找到了好的进攻位置，优先考虑
-    if (best_attack_idx != -1 && best_attack_score > 500) {
+    // 如果找到了好的进攻位置，但不如防守重要，权重降低
+    if (best_attack_idx != -1 && best_attack_score > 2000) {
         move = candidates[best_attack_idx];
         clock_t end_time = clock();
-        printf("AI落子位置: %c%d (进攻: %d)\n", 'A' + move.col, move.row + 1, best_attack_score);
+        printf("AI落子位置: %c%d (强势进攻: %d)\n", 'A' + move.col, move.row + 1, best_attack_score);
         printf("AI Time: %.2f seconds\n", get_elapsed_time(start_time, end_time));
         return move;
     }
     
-    // 优先级6：使用Alpha-Beta搜索进行深层评估
+    // 优先级5：使用Alpha-Beta搜索进行深层评估
     int best_score = MIN_SCORE;
     int best_idx = -1;
     
@@ -486,8 +521,8 @@ int evaluate_position(GameState *gamestate, int row, int col, Player player) {
 int generate_position(GameState *gamestate, Position candidates[], Player aiplayer) {
     int count = 0;
     
-    // 优先生成靠近现有棋子的位置
-    for (int distance = 1; distance <= 2 && count < MaxCandidate; distance++) {
+    // 优先生成靠近现有棋子的位置，扩大距离范围到3以确保紧贴对方棋子
+    for (int distance = 1; distance <= 3 && count < MaxCandidate; distance++) {
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
                 if (gamestate->board[i][j] == EMPTY) {
