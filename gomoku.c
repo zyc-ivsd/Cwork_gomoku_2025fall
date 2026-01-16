@@ -145,6 +145,7 @@ int main(int argc, char *argv[]) {
                 }
                 if(gameState.currentPlayer == PLAYER_BLACK && ban(&gameState,row,col)){
                     printBoard(&gameState);
+                    printf("在%d %c 处，形成禁手\n",row + 1,col + 'A');
                     printf("你违反了禁手，黑方负！\n");
                     break;
                 }
@@ -157,34 +158,36 @@ int main(int argc, char *argv[]) {
         }
         //AI下棋部分
         else {
-            Position aimove = bestMove(&gameState,gameState.currentPlayer);
+            printf("AI正在思考中\n");
+            Position aimove = bestMove(&gameState, aiPlayer); // 传递AI玩家类型
             CellState aicolor = (aiPlayer == PLAYER_BLACK)? BLACK:WHITE;
             gameState.board[aimove.row][aimove.col] = aicolor;
-            int winner = checkWin(&gameState,aimove.row,aimove.col);
-                if(winner == 1){
-                    printBoard(&gameState);
-                    printf("黑方胜利!\n");
-                    break;
-                }
-                if(winner == 2){
-                    printBoard(&gameState);
-                    printf("白方胜利!\n");
-                    break;
-                }
-                if(gameState.currentPlayer == PLAYER_BLACK && ban(&gameState,aimove.row,aimove.col)){
-                    printBoard(&gameState);
-                    printf("你违反了禁手，黑方负！\n");
-                    break;
-                }
+            gameState.lastMove.row = aimove.row;
+            gameState.lastMove.col = aimove.col; // 记录AI最后一步
+            
+            printf("AI落子位置: %c%d\n", (char)aimove.col + 'A', aimove.row + 1); // 显示AI落子位置
+            
+            int winner = checkWin(&gameState, aimove.row, aimove.col);
+            if(winner == 1){
+                printBoard(&gameState);
+                printf("黑方胜利!\n");
+                break;
+            }
+            if(winner == 2){
+                printBoard(&gameState);
+                printf("白方胜利!\n");
+                break;
+            }
+            if(aiPlayer == PLAYER_BLACK && ban(&gameState, aimove.row, aimove.col)){
+                printBoard(&gameState);
+                printf("在%d %c 处，形成禁手\n", aimove.row + 1, aimove.col + 'A');
+                printf("AI违反了禁手，黑方负！\n");
+                break;
+            }
+            // 切换到下一个玩家
             gameState.currentPlayer = (gameState.currentPlayer == PLAYER_BLACK) ? PLAYER_WHITE : PLAYER_BLACK;
-
-
         }
-
-
-
-        
-        
+ 
     }
 
     return 0;
