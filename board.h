@@ -9,8 +9,7 @@
 // define board size
 // 定义棋盘大小
 #define BOARD_SIZE 15
-#define MaxCandidate 20 // 定义候选点的最大数量
-#define MinScore 500  //定义候选点的最小分数
+ 
 
 // enum of board cells
 // 棋盘格子的状态枚举

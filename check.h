@@ -10,11 +10,17 @@ int isValidMove(GameState *gameState, int row, int col);
 
 CellState check_vs(GameState *gamestate,int row,int col);
 
+Check_side check_side(GameState *gamestate,int row,int col,int dir);
+
+Check_side check_with_empty(GameState *gamestate,int row,int col,int dir);
+
 int check_open_three(GameState *gamestate,int row,int col,int dir);
 
 int check_open_four(GameState *gamestate,int row,int col,int dir);
 
 int check_four(GameState *gamestate,int row,int col,int dir);
+
+int check_jump_four(GameState *gamestate,int row,int col,int dir);
 
 int check_oneline_four(GameState *gamestate,int row ,int col,int dir);
 

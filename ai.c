@@ -5,10 +5,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define SEARCH_DEPTH 10
+#define SEARCH_DEPTH 8
 #define MAX_SCORE 1000000
 #define MIN_SCORE -1000000
-#define MaxCandidate 100
+#define MaxCandidate 30
 #define MinScore 100
 #define TIME_LIMIT 15.0  // 每步最大思考时间15秒
 
@@ -60,6 +60,13 @@ Position bestMove(GameState *state, Player aiplayer) {
         }
         
         state->board[row][col] = ai_color;
+        
+        // 如果AI是黑棋，检查禁手：有禁手则不落子
+        if (aiplayer == PLAYER_BLACK && ban(state, row, col)) {
+            state->board[row][col] = EMPTY;
+            continue;  // 禁手，跳过这个位置
+        }
+        
         if (checkWin(state, row, col)) {
             state->board[row][col] = EMPTY;
             move.row = row;
@@ -72,23 +79,24 @@ Position bestMove(GameState *state, Player aiplayer) {
         state->board[row][col] = EMPTY;
     }
     
-    // 优先级1.5：VCF算法检测必赢局面（只检测活四和双活三）
-    Position vcf_move = find_vcf_winning_move(state, aiplayer, 8);
-    if (vcf_move.row != -1 && vcf_move.col != -1) {
-        move = vcf_move;
-        clock_t end_time = clock();
-        printf("AI落子位置: %c%d (VCF必赢)\n", 'A' + move.col, move.row + 1);
-        printf("AI Time: %.2f seconds\n", get_elapsed_time(start_time, end_time));
-        return move;
-    }
-    
-    // 优先级2.3：如果VCF无法确保必赢，立即检查对手是否有活三或冲四威胁
-    // 这是关键防守，必须优先于其他任何行动
+    // 优先级1.5：立即检查对手是否有活三或冲四威胁
+    // 这是最关键的防守，必须优先于VCF进攻，防止被反杀
     Position critical_defense = find_critical_defense(state, human_player);
     if (critical_defense.row != -1 && critical_defense.col != -1) {
         move = critical_defense;
         clock_t end_time = clock();
         printf("AI落子位置: %c%d (紧急防守)\n", 'A' + move.col, move.row + 1);
+        printf("AI Time: %.2f seconds\n", get_elapsed_time(start_time, end_time));
+        return move;
+    }
+    
+    // 优先级2：VCF算法检测必赢局面（只检测活四和双活三）
+    // 现在VCF会检查对手的威胁，只返回安全的必赢走法
+    Position vcf_move = find_vcf_winning_move(state, aiplayer, 8);
+    if (vcf_move.row != -1 && vcf_move.col != -1) {
+        move = vcf_move;
+        clock_t end_time = clock();
+        printf("AI落子位置: %c%d (VCF必赢)\n", 'A' + move.col, move.row + 1);
         printf("AI Time: %.2f seconds\n", get_elapsed_time(start_time, end_time));
         return move;
     }
@@ -115,7 +123,7 @@ Position bestMove(GameState *state, Player aiplayer) {
         state->board[row][col] = EMPTY;
     }
     
-    // 优先级5：使用Alpha-Beta搜索进行深层评估
+    // 优先级4：使用Alpha-Beta搜索进行深层评估
     int best_score = MIN_SCORE;
     int best_idx = -1;
     
@@ -128,6 +136,13 @@ Position bestMove(GameState *state, Player aiplayer) {
         }
         
         state->board[row][col] = ai_color;
+        
+        // 如果AI是黑棋，检查禁手：有禁手则不落子
+        if (aiplayer == PLAYER_BLACK && ban(state, row, col)) {
+            state->board[row][col] = EMPTY;
+            continue;  // 禁手，跳过这个位置
+        }
+        
         state->lastMove.row = row;
         state->lastMove.col = col;
         
@@ -176,7 +191,7 @@ Position bestMove(GameState *state, Player aiplayer) {
     return move;
 }
 
-// Alpha-beta剪枝搜索算法，支持10层深度
+// Alpha-beta剪枝搜索算法，支持8层深度
 int alphaBetaSearch(GameState *state, int depth, int alpha, int beta, Player aiplayer, int isMaximizing, clock_t start_time) {
     // 检查是否超时
     if (get_elapsed_time(start_time, clock()) >= TIME_LIMIT) {
@@ -212,6 +227,13 @@ int alphaBetaSearch(GameState *state, int depth, int alpha, int beta, Player aip
         }
         
         state->board[row][col] = current_color;
+        
+        // 如果当前是黑棋，检查禁手：有禁手则不落子
+        if (current_player == PLAYER_BLACK && ban(state, row, col)) {
+            state->board[row][col] = EMPTY;
+            continue;  // 禁手，跳过这个位置
+        }
+        
         if (checkWin(state, row, col)) {
             state->board[row][col] = EMPTY;
             return isMaximizing ? MAX_SCORE - depth : MIN_SCORE + depth;
@@ -234,6 +256,13 @@ int alphaBetaSearch(GameState *state, int depth, int alpha, int beta, Player aip
             }
             
             state->board[row][col] = current_color;
+            
+            // 如果当前是黑棋，检查禁手：有禁手则不落子
+            if (current_player == PLAYER_BLACK && ban(state, row, col)) {
+                state->board[row][col] = EMPTY;
+                continue;  // 禁手，跳过这个位置
+            }
+            
             state->lastMove.row = row;
             state->lastMove.col = col;
             
@@ -424,6 +453,17 @@ int generate_position(GameState *gamestate, Position candidates[], Player aiplay
                     }
                     
                     if (has_nearby) {
+                        // 如果AI是黑棋，检查禁手
+                        if (aiplayer == PLAYER_BLACK) {
+                            gamestate->board[i][j] = BLACK;
+                            if (ban(gamestate, i, j)) {
+                                // 有禁手，不落子，跳过这个位置
+                                gamestate->board[i][j] = EMPTY;
+                                continue;
+                            }
+                            gamestate->board[i][j] = EMPTY;
+                        }
+                        
                         candidates[count].row = i;
                         candidates[count].col = j;
                         count++;
@@ -441,9 +481,12 @@ int generate_position(GameState *gamestate, Position candidates[], Player aiplay
 
 // VCF算法：简化版本，只检测明确的必赢情况
 // 优先级：活四 > 双活三 > 返回-1（让防守机制接手）
+// 改进：检查对手的下一步威胁，只返回安全的必赢走法
 Position find_vcf_winning_move(GameState *state, Player aiplayer, int depth) {
     Position no_move = {-1, -1};
     CellState ai_color = (aiplayer == PLAYER_BLACK) ? BLACK : WHITE;
+    CellState opponent_color = (aiplayer == PLAYER_BLACK) ? WHITE : BLACK;
+    Player opponent = (aiplayer == PLAYER_BLACK) ? PLAYER_WHITE : PLAYER_BLACK;
     
     Position candidates[MaxCandidate];
     int candidate_num = generate_position(state, candidates, aiplayer);
@@ -459,6 +502,12 @@ Position find_vcf_winning_move(GameState *state, Player aiplayer, int depth) {
         
         state->board[row][col] = ai_color;
         
+        // 如果AI是黑棋，检查禁手：有禁手则跳过
+        if (aiplayer == PLAYER_BLACK && ban(state, row, col)) {
+            state->board[row][col] = EMPTY;
+            continue;  // 禁手，跳过这个位置
+        }
+        
         // 检查四个方向的活四
         int has_open_four = 0;
         for (int dir = 0; dir < 4; dir++) {
@@ -468,11 +517,26 @@ Position find_vcf_winning_move(GameState *state, Player aiplayer, int depth) {
             }
         }
         
-        state->board[row][col] = EMPTY;
-        
         if (has_open_four) {
-            return (Position){row, col};  // 活四必赢
+            // 找到活四，但在返回前检查对手是否有致命威胁
+            // 更新lastMove，用于后续评估
+            state->lastMove.row = row;
+            state->lastMove.col = col;
+            
+            // 检查对手是否有活三、冲四威胁
+            Position opponent_threat = find_critical_defense(state, opponent);
+            
+            state->board[row][col] = EMPTY;
+            
+            // 如果对手没有活三/冲四威胁，则这个活四是安全的必赢
+            if (opponent_threat.row == -1 && opponent_threat.col == -1) {
+                return (Position){row, col};  // 活四必赢且安全
+            }
+            // 如果对手有威胁，暂时跳过这个位置，继续找其他更安全的走法
+            continue;
         }
+        
+        state->board[row][col] = EMPTY;
     }
     
     // 第二遍：查找双活三（两个方向的活三，对手无法同时防守）
@@ -486,6 +550,12 @@ Position find_vcf_winning_move(GameState *state, Player aiplayer, int depth) {
         
         state->board[row][col] = ai_color;
         
+        // 如果AI是黑棋，检查禁手：有禁手则跳过
+        if (aiplayer == PLAYER_BLACK && ban(state, row, col)) {
+            state->board[row][col] = EMPTY;
+            continue;  // 禁手，跳过这个位置
+        }
+        
         // 计算活三数量
         int open_three_count = 0;
         for (int dir = 0; dir < 4; dir++) {
@@ -494,14 +564,28 @@ Position find_vcf_winning_move(GameState *state, Player aiplayer, int depth) {
             }
         }
         
-        state->board[row][col] = EMPTY;
-        
         if (open_three_count >= 2) {
-            return (Position){row, col};  // 双活三必赢
+            // 找到双活三，检查对手是否有即刻威胁
+            state->lastMove.row = row;
+            state->lastMove.col = col;
+            
+            // 检查对手是否有活三、冲四威胁
+            Position opponent_threat = find_critical_defense(state, opponent);
+            
+            state->board[row][col] = EMPTY;
+            
+            // 如果对手没有活三/冲四威胁，则这个双活三是安全的必赢
+            if (opponent_threat.row == -1 && opponent_threat.col == -1) {
+                return (Position){row, col};  // 双活三必赢且安全
+            }
+            // 否则继续搜索其他走法
+            continue;
         }
+        
+        state->board[row][col] = EMPTY;
     }
     
-    // 如果找不到明确的必赢，返回-1，让防守机制接手
+    // 如果找不到明确的安全必赢，返回-1，让防守机制接手
     return no_move;
 }
 
@@ -515,6 +599,29 @@ double get_elapsed_time(clock_t start, clock_t end) {
     return ((double)(end - start)) / CLOCKS_PER_SEC;
 }
 
+// 计算对手威胁的数量
+int count_opponent_threats(GameState *state, Player opponent) {
+    int threat_count = 0;
+    CellState opponent_color = (opponent == PLAYER_BLACK) ? BLACK : WHITE;
+    
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        for (int j = 0; j < BOARD_SIZE; j++) {
+            if (state->board[i][j] != opponent_color) {
+                continue;
+            }
+            
+            // 检查活三
+            for (int dir = 0; dir < 4; dir++) {
+                if (check_open_three(state, i, j, dir)) {
+                    threat_count++;
+                }
+            }
+        }
+    }
+    
+    return threat_count;
+}
+
 // 查找关键防守位置：检测对手的活三、冲四和跳四，返回堵住它的位置
 // 如果对手有活三、冲四或跳四，立刻返回堵住的位置
 // 优先级：活三 > 跳四(XX_XX) > 冲四
@@ -523,6 +630,7 @@ Position find_critical_defense(GameState *state, Player opponent) {
     CellState opponent_color = (opponent == PLAYER_BLACK) ? BLACK : WHITE;
     
     // 第一优先级：查找活三威胁，找到堵住它们的位置
+    // 活三 _XXX_ 是最致命的威胁，必须立即堵住
     for (int i = 0; i < BOARD_SIZE; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {
             if (state->board[i][j] != opponent_color) {
@@ -539,7 +647,11 @@ Position find_critical_defense(GameState *state, Player opponent) {
                 int dx = direction[dir][0];
                 int dy = direction[dir][1];
                 
-                // 向正方向查找空位堵住
+                // 对于活三 _XXX_，需要在两端都放置权重
+                // 但先返回更容易完成的防守点
+                Position defense_pos = {-1, -1};
+                
+                // 向正方向查找最近的空位
                 for (int k = 1; k <= 5; k++) {
                     int x = j + k * dx;
                     int y = i + k * dy;
@@ -548,13 +660,20 @@ Position find_critical_defense(GameState *state, Player opponent) {
                         break;
                     }
                     if (state->board[y][x] == EMPTY) {
-                        return (Position){y, x};  // 立即返回第一个能堵住的位置
+                        defense_pos.row = y;
+                        defense_pos.col = x;
+                        break;
                     } else if (state->board[y][x] != opponent_color) {
                         break;
                     }
                 }
                 
-                // 向反方向查找空位堵住
+                // 如果找到防守位置，立即返回
+                if (defense_pos.row != -1 && defense_pos.col != -1) {
+                    return defense_pos;
+                }
+                
+                // 向反方向查找空位
                 for (int k = 1; k <= 5; k++) {
                     int x = j - k * dx;
                     int y = i - k * dy;
@@ -573,6 +692,7 @@ Position find_critical_defense(GameState *state, Player opponent) {
     }
     
     // 第二优先级：查找跳四(XX_XX)威胁，找到堵住它们的位置
+    // 对于XX_XX型的跳四，应该优先堵住中间的空位
     for (int i = 0; i < BOARD_SIZE; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {
             if (state->board[i][j] != opponent_color) {
@@ -586,10 +706,39 @@ Position find_critical_defense(GameState *state, Player opponent) {
                 }
                 
                 // 找到跳四了，现在找堵住它的空位
+                // 对于XX_XX形式，中间的空位是最关键的
                 int dx = direction[dir][0];
                 int dy = direction[dir][1];
                 
-                // 向正方向查找空位堵住
+                // 首先尝试找到这个跳四的中间空位
+                Position middle_defense = {-1, -1};
+                
+                // 从当前位置向正方向扫描，找中间的空位
+                for (int k = 1; k <= 5; k++) {
+                    int x = j + k * dx;
+                    int y = i + k * dy;
+                    
+                    if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) {
+                        break;
+                    }
+                    
+                    if (state->board[y][x] == EMPTY && middle_defense.row == -1) {
+                        // 检查这个空位前后是否都有对方棋子
+                        int next_x = x + dx;
+                        int next_y = y + dy;
+                        if (next_x >= 0 && next_x < BOARD_SIZE && next_y >= 0 && next_y < BOARD_SIZE) {
+                            if (state->board[next_y][next_x] == opponent_color) {
+                                middle_defense.row = y;
+                                middle_defense.col = x;
+                                return middle_defense;  // 立即返回中间的空位
+                            }
+                        }
+                    } else if (state->board[y][x] != opponent_color) {
+                        break;
+                    }
+                }
+                
+                // 如果没找到中间空位，找其他空位
                 for (int k = 1; k <= 5; k++) {
                     int x = j + k * dx;
                     int y = i + k * dy;
@@ -604,7 +753,7 @@ Position find_critical_defense(GameState *state, Player opponent) {
                     }
                 }
                 
-                // 向反方向查找空位堵住
+                // 向反方向查找空位
                 for (int k = 1; k <= 5; k++) {
                     int x = j - k * dx;
                     int y = i - k * dy;
